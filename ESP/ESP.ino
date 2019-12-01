@@ -3,22 +3,22 @@
 /* Define motor controll inputs */
 const int motorRPin1 = 2; // signal pin 1 for the right motor, connect to IN1               
 const int motorRPin2 = 3;  // signal pin 2 for the right motor, connect to IN2
-const int motorREnable = 5; // enable pin for the right motor (PWM enabled)
+const int motorRPWM = 5; // enable pin for the right motor (PWM enabled)
 
 const int motorLPin1 = 4; // signal pin 1 for the left motor, connect to IN3           
 const int motorLPin2 = 7; // signal pin 2 for the left motor, connect to IN4
-const int motorLEnable = 6; // enable pin for the left motor (PWM enabled)
+const int motorLPWM = 6; // enable pin for the left motor (PWM enabled)
 
 const int irPins[8] = {A0, A1, A2, A3, A4, A5 , 11 , 12};
 int irSensorDigital[8] = {0,0,0,0,0,0,0,0};
-int i,j = 0;
-int d = 1000;
+//int i,j = 0;
+//int d = 1000;
 
 int irSensors = B00000000; 
 
 int motorLSpeed = 255;
 int motorRSpeed = 255;
-int error = 200;   // 145 best 200  //  normal 255  // mad 0 
+int error = 145;   // 145 best 200  //  normal 255  // mad 0 
 void setup() {
   
   
@@ -27,11 +27,11 @@ void setup() {
   
   pinMode(motorLPin1,OUTPUT);        
   pinMode(motorLPin2,OUTPUT);
-  pinMode(motorLEnable,OUTPUT);
+  pinMode(motorLPWM,OUTPUT);
   
   pinMode(motorRPin1,OUTPUT);        
   pinMode(motorRPin2,OUTPUT);
-  pinMode(motorREnable,OUTPUT);
+  pinMode(motorRPWM,OUTPUT);
    
   /* Set-up IR sensor pins as input */
   for (int i = 0; i <= 7; i++) 
@@ -195,7 +195,7 @@ void check( )
      leftS();
      break;  
      
-     case B11111111:
+     case B11100111:
       go();        
      
      break;  
@@ -217,11 +217,11 @@ void rightS()
 
 {
      Serial.println("                         right motor forward (spin)");
-     analogWrite(motorREnable, motorRSpeed);
+     analogWrite(motorRPWM, motorRSpeed);
      digitalWrite(motorRPin1, LOW);
      digitalWrite(motorRPin2, HIGH);
      
-     analogWrite(motorLEnable, motorLSpeed-error);
+     analogWrite(motorLPWM, motorLSpeed-error);
      digitalWrite(motorLPin1, HIGH);
      digitalWrite(motorLPin2, LOW);
   
@@ -231,11 +231,11 @@ void rightS()
 void leftS()  //turn left
 {
      Serial.println("                         left  motor forward (spin)");
-     analogWrite(motorREnable, motorRSpeed-error);
+     analogWrite(motorRPWM, motorRSpeed-error);
      digitalWrite(motorRPin1, HIGH);
      digitalWrite(motorRPin2, LOW);
      
-     analogWrite(motorLEnable, motorLSpeed);
+     analogWrite(motorLPWM, motorLSpeed);
      digitalWrite(motorLPin1, LOW);
      digitalWrite(motorLPin2, HIGH);
   
@@ -244,11 +244,11 @@ void leftS()  //turn left
 void go()
 {
     Serial.println("                         forward ");
-     analogWrite(motorREnable, motorRSpeed);
+     analogWrite(motorRPWM, motorRSpeed);
      digitalWrite(motorRPin1, LOW);
      digitalWrite(motorRPin2, HIGH);
      
-     analogWrite(motorLEnable, motorLSpeed);
+     analogWrite(motorLPWM, motorLSpeed);
      digitalWrite(motorLPin1, LOW);
      digitalWrite(motorLPin2, HIGH);
   
@@ -257,11 +257,11 @@ void go()
 void stopme()
 {
      Serial.println("                         stop");
-     analogWrite(motorREnable, motorRSpeed);
+     analogWrite(motorRPWM, motorRSpeed);
      digitalWrite(motorRPin1, LOW);
      digitalWrite(motorRPin2, LOW);
      
-     analogWrite(motorLEnable, motorLSpeed);
+     analogWrite(motorLPWM, motorLSpeed);
      digitalWrite(motorLPin1, LOW);
      digitalWrite(motorLPin2, LOW);
   
