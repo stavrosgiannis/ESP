@@ -216,7 +216,7 @@ void check( )
 void rightS() 
 
 {
-     Serial.println("                         right motor forward (spin)");
+     Serial.println("                         right motor forward (right spin)");
      analogWrite(motorRPWM, motorRSpeed);
      digitalWrite(motorRPin1, LOW);
      digitalWrite(motorRPin2, HIGH);
@@ -230,7 +230,7 @@ void rightS()
 
 void leftS()  //turn left
 {
-     Serial.println("                         left  motor forward (spin)");
+     Serial.println("                         left  motor forward (left spin)");
      analogWrite(motorRPWM, motorRSpeed-error);
      digitalWrite(motorRPin1, HIGH);
      digitalWrite(motorRPin2, LOW);
