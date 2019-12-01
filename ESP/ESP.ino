@@ -11,7 +11,8 @@ const int motorLPWM = 6; // enable PWM for the left motor
 const int irPins[8] = {A0, A1, A2, A3, A4, A5 , 11 , 12};
 int irSensorDigital[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-//Variable werde 2 Bytes jeweils 0 Bits gesetzt
+//Variable werden 2 Bytes jeweils 0 Bits gesetzt
+// the 0b(B) prefix indicates a binary constant
 int irSensors = B00000000; 
 
 int motorLSpeed = 255;
@@ -21,7 +22,6 @@ int error = 145;   // 145 best 200  //  normal 255  // mad 0
 void setup() {
   
   Serial.begin(9600);
-  
   
   pinMode(motorLPin1,OUTPUT);        
   pinMode(motorLPin2,OUTPUT);
@@ -218,6 +218,7 @@ void scan_data()
 {
   for ( byte count = 0; count < 8;count++ )
     {
+	  //Writes a bit of a numeric variable.
       bitWrite(irSensors, count, !digitalRead( irPins[count] ));
     } 
 }
