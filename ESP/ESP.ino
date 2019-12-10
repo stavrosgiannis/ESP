@@ -19,7 +19,7 @@
 // sensors 0 through 7 are connected to digital pins 3 through 12, respectively
 // I moved 6 and 9 for the motor driver
 
-QTRSensorsRC qtrrc((unsigned char[]) { 2, 4, 7, 8, 10, 11, 12, 13 }, NUM_SENSORS, TIMEOUT, EMITTER_PIN);
+QTRSensorsRC qtrrc((unsigned char[]) { 2, 4, 7, 8, 10, 11, 12, 13 }, NUM_SENSORS, TIMEOUT, QTR_NO_EMITTER_PIN);
 
 unsigned int sensorValues[NUM_SENSORS];
 
@@ -43,8 +43,8 @@ int M2B = 9;//M2 Direction Control int 4
 boolean Freeze = 0; // pin high or low to stop motor????
 ///////////////////////PID TUNING//////////////
 int lastError = 0;
-float KP = 0.9;
-float KD = 6;
+float KP = 0.9;			 // experiment to determine this, start by something small that just makes your bot follow the line at a slow speed
+float KD = 9;	// experiment to determine this, slowly increase the speeds and adjust this value. ( Note: Kp < Kd)
 int M1 = 0;  //base motor speeds
 int M2 = 0;  //base motor speeds
 int M1max = 255;  //max motor speeds
@@ -54,6 +54,20 @@ int M2min = 0;  //max motor speeds
 
 void setup() {
 	Serial.begin(9600);
+
+	/*Serial.println("90° turn left");
+	analogWrite(M1A, -255);
+	digitalWrite(M1B, HIGH);
+	analogWrite(M2A, 255);
+	digitalWrite(M2B, HIGH);
+	delay(4000);
+	Serial.println("90° turn right");
+	analogWrite(M1A, 255);
+	digitalWrite(M1B, HIGH);
+	analogWrite(M2A, -255);
+	digitalWrite(M2B, HIGH);
+	delay(4000);*/
+
 	Serial.println("Calibrating sensors 10secs");
 	pinMode(LED_BUILTIN, OUTPUT);
 	pinMode(M1A, OUTPUT); //M1 Speed Control int 1
@@ -99,7 +113,7 @@ void loop()
 
 	// compute our "error" from the line position
 	// error is zero when the middle sensor is over the line,
-	error = position - 2000;   /// using an 8 sensor array targeting middle of position 4 to 5
+	error = position - 3750;   /// using an 8 sensor array targeting middle of position 4 to 5
 
 	Serial.print("error ");
 	Serial.print(error);
@@ -109,6 +123,7 @@ void loop()
 	motorSpeed = KP * error + KD * (error - lastError);
 	lastError = error;
 	/////////CHANGE THE - OR + BELOW DEPENDING ON HOW YOUR DRIVER WORKS
+
 	m1Speed = M1 + motorSpeed; // M1 and M2 are base motor speeds.
 	m2Speed = M2 - motorSpeed;
 	Serial.print("m1Speed ");
@@ -128,6 +143,22 @@ void loop()
 		m2Speed = M2max;
 	// set motor speeds using the two motor speed variables above 255
 
+	/*if (position > 6000) {
+		Serial.println("90° turn left");
+		analogWrite(M1A, -255);
+		digitalWrite(M1B, HIGH);
+		analogWrite(M2A, 255);
+		digitalWrite(M2B, HIGH);
+		return;
+	}
+	if (position < 500) {
+		Serial.println("90° turn right");
+		analogWrite(M1A, 255);
+		digitalWrite(M1B, HIGH);
+		analogWrite(M2A, -255);
+		digitalWrite(M2B, HIGH);
+		return;
+	}*/
 	forward();  // run the motors
 }
 
