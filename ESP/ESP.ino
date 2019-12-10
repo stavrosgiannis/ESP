@@ -1,226 +1,150 @@
 /*
- Name:		ESP.ino
- Created:	03.12.2019 22:45:55
- Author:	Stavros
+  PINS USED:
+  Sensor PINS USED:     +5, GND, 2, 3, 4, 5, 7, 8, 10, 11, 12
+  The sensor pin names VCC, GND, 0, 1, 2, 3, 4,  5,  6,  7,  8
+  NeoPixel LED Data pin 14
+  Motor driver 6, 9, 13, 15
+  Type L298N Motor driver. Enable pins are jumpered LOW
+   6 //M1 Direction Control int 1
+   13 //M1 Direction Control int 2
+   9 //M2 Direction Control int 3
+   15 //M2 Direction Control int 4
 */
+#include "QTRSensors.h";
 
-/* Define motor controll inputs */
-const int motorRPin1 = 2; // signal pin 1 for the right motor, connect to IN1
-const int motorRPin2 = 3;  // signal pin 2 for the right motor, connect to IN2
-const int motorRPWM = 5; // enable PWM for the right motor
+#define NUM_SENSORS   8     // number of sensors used
+#define TIMEOUT       2500  // waits for 2500 microseconds for sensor outputs to go low
+#define EMITTER_PIN   0     // emitter is controlled by digital pin 2
 
-const int motorLPin1 = 4; // signal pin 1 for the left motor, connect to IN3
-const int motorLPin2 = 7; // signal pin 2 for the left motor, connect to IN4
-const int motorLPWM = 6; // enable PWM for the left motor
+// sensors 0 through 7 are connected to digital pins 3 through 12, respectively
+// I moved 6 and 9 for the motor driver
 
-const int irPins[8] = { A0, A1, A2, A3, A4, A5 , 11 , 12 };
-int irSensorDigital[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+QTRSensorsRC qtrrc((unsigned char[]) { 2, 4, 7, 8, 10, 11, 12, 13 }, NUM_SENSORS, TIMEOUT, EMITTER_PIN);
 
-//Variable werden 2 Bytes jeweils 0 Bits gesetzt
-// the 0b(B) prefix indicates a binary constant
-int irSensors = B00000000;
+unsigned int sensorValues[NUM_SENSORS];
 
-int motorLSpeed = 255;
-int motorRSpeed = 255;
-int error = 145;   // 145 best 200  //  normal 255  // mad 0
+unsigned int sensors[8];
+// unsigned int sensors[NUM_SENSORS];////////////problem
+int position = 0;
+int error = 0;
+int m1Speed = 0;
+int m2Speed = 0;
+int motorSpeed = 0;
 
-// the setup function runs once when you press reset or power the board
+/////////////////////////////OUTPUT PINS////////////////
+// Jumpered M1 Speed Control ENA
+//Jumpered M2 Speed Control ENB
+//maybe jump 2 pins to GND to reduce wire count?
+
+int M1A = 3; //M1 Direction Control int 1
+int M1B = 5; //M1 Direction Control int 2
+int M2A = 6; //M2 Direction Control int 3
+int M2B = 9;//M2 Direction Control int 4
+boolean Freeze = 0; // pin high or low to stop motor????
+///////////////////////PID TUNING//////////////
+int lastError = 0;
+float KP = 0.1;
+float KD = 6;
+int M1 = 0;  //base motor speeds
+int M2 = 0;  //base motor speeds
+int M1max = 255;  //max motor speeds
+int M2max = 255;  //max motor speeds
+int M1min = 0;  //max motor speeds
+int M2min = 0;  //max motor speeds
+
 void setup() {
 	Serial.begin(9600);
+	Serial.println("Calibrating sensors 10secs");
+	pinMode(LED_BUILTIN, OUTPUT);
+	pinMode(M1A, OUTPUT); //M1 Speed Control int 1
+	pinMode(M1B, OUTPUT); //M1 Direction Control int 2
+	pinMode(M2A, OUTPUT); //M2 Speed Control int 3
+	pinMode(M2B, OUTPUT); //M2 Direction Control int 4
+	digitalWrite(M1A, Freeze); // stop the motor
+	digitalWrite(M2A, Freeze); // stop the motor
+	digitalWrite(M1B, HIGH);    // set the second directional pins LOW
+	digitalWrite(M2B, HIGH);    // set the second directional pins LOW
 
-	pinMode(motorLPin1, OUTPUT);
-	pinMode(motorLPin2, OUTPUT);
-	pinMode(motorLPWM, OUTPUT);
-
-	pinMode(motorRPin1, OUTPUT);
-	pinMode(motorRPin2, OUTPUT);
-	pinMode(motorRPWM, OUTPUT);
-
-	/* Set-up IR sensor pins as input */
-	for (int i = 0; i <= 7; i++)
+	for (int i = 0; i < 400; i++)  // make the calibration take about 10 seconds
 	{
-		pinMode(irPins[i], INPUT);
+		delay(5);
+		qtrrc.calibrate();       // reads all sensors 10 times at 2500 us per read (i.e. ~25 ms per call)
 	}
-}
 
-// the loop function runs over and over again until power down or reset
-void loop() {
-	scan_data();
-	check_data();
-}
+	// print the calibration minimum values measured when emitters were on
 
-void check_data()
-{
-	switch (irSensors) {
-	case B00000000: // on white paper
-		turn_right();
-		break;
-	case B10000000: // leftmost sensor on the line
-		turn_right();
-		break;
-	case B01000000:
-		turn_right();
-		break;
-	case B00100000:
-		turn_right();
-		break;
-	case B00010000:
-		turn_right();
-		break;
-	case B00001000:
-		turn_left();
-		break;
-	case B00000100:
-		turn_left();
-		break;
-	case B00000010:
-		turn_left();
-		break;
-	case B00000001:
-		turn_left();
-		break;
-	case B11000000:
-		turn_right();
-		break;
-	case B01100000:
-		turn_right();
-		break;
-	case B00110000:
-		turn_right();
-		break;
-	case B00011000:
-		forward();
-		break;
-	case B00001100:
-		turn_left();
-		break;
-	case B00000110:
-		turn_left();
-		break;
-	case B00000011:
-		turn_left();
-		break;
-	case B11100000:
-		turn_right();
-		break;
-	case B01110000:
-		turn_right();
-		break;
-	case B00111000:
-		turn_right();
-		break;
-	case B00011100:
-		turn_left();
-		break;
-	case B00001110:
-		turn_left();
-		break;
-	case B00000111:
-		turn_left();
-		break;
-	case B11110000:
-		turn_right();
-		break;
-	case B01111000:
-		turn_right();
-		break;
-	case B00111100:
-		forward();
-		break;
-	case B00011110:
-		turn_left();
-		break;
-	case B00001111:
-		turn_left();
-		break;
-	case B11111000:
-		turn_right();
-		break;
-	case B01111100:
-		turn_right();
-		break;
-	case B00111110:
-		turn_left();
-		break;
-	case B00011111:
-		turn_left();
-		break;
-	case B11111100:
-		turn_right();
-		break;
-	case B01111110:
-		forward();
-		break;
-	case B00111111:
-		turn_left();
-		break;
-	case B11111110:
-		turn_right();
-		break;
-	case B01111111:
-		turn_left();
-		break;
-	case B11100111:
-		forward();
-		break;
-	default:
-		Serial.println("Unhandled case: ");
+	for (int i = 0; i < NUM_SENSORS; i++)
+	{
+		Serial.print(qtrrc.calibratedMinimumOn[i]);
+		Serial.print(' ');
 	}
+	Serial.println();
+
+	// print the calibration maximum values measured when emitters were on
+	for (int i = 0; i < NUM_SENSORS; i++)
+	{
+		Serial.print(qtrrc.calibratedMaximumOn[i]);
+		Serial.print(' ');
+	}
+	Serial.println();
 }
 
-void turn_right()
+void loop()
 {
-	Serial.println("                         right motor forward (right spin)");
-	analogWrite(motorRPWM, motorRSpeed);
-	digitalWrite(motorRPin1, LOW);
-	digitalWrite(motorRPin2, HIGH);
+	position = qtrrc.readLine(sensors);
 
-	analogWrite(motorLPWM, motorLSpeed - error);
-	digitalWrite(motorLPin1, HIGH);
-	digitalWrite(motorLPin2, LOW);
+	Serial.print("position ");
+	Serial.print(position);
+	Serial.println();
+
+	// compute our "error" from the line position
+	// error is zero when the middle sensor is over the line,
+	error = position - 2000;   /// using an 8 sensor array targeting middle of position 4 to 5
+
+	Serial.print("error ");
+	Serial.print(error);
+	Serial.println();
+
+	// set the motor speed based on proportional and derivative PID terms
+	motorSpeed = KP * error + KD * (error - lastError);
+	lastError = error;
+	/////////CHANGE THE - OR + BELOW DEPENDING ON HOW YOUR DRIVER WORKS
+	m1Speed = M1 + motorSpeed; // M1 and M2 are base motor speeds.
+	m2Speed = M2 - motorSpeed;
+	Serial.print("m1Speed ");
+	Serial.print(m1Speed);
+	Serial.print(" ");
+	Serial.print("m2Speed ");
+	Serial.println(m2Speed);
+	Serial.println();
+
+	if (m1Speed < M1min)  //keep speeds to 0 or above
+		m1Speed = M1min;
+	if (m2Speed < M2min)
+		m2Speed = M2min;
+	if (m1Speed > M1max) //maximum allowed value
+		m1Speed = M1max;
+	if (m2Speed > M2max) //maximum allowed value
+		m2Speed = M2max;
+	// set motor speeds using the two motor speed variables above 255
+
+	forward();  // run the motors
 }
 
-void turn_left()  //turn left
+////////////////////////STOP//////////////
+void stopit(void)
 {
-	Serial.println("                         left  motor forward (left spin)");
-	analogWrite(motorRPWM, motorRSpeed - error);
-	digitalWrite(motorRPin1, HIGH);
-	digitalWrite(motorRPin2, LOW);
-
-	analogWrite(motorLPWM, motorLSpeed);
-	digitalWrite(motorLPin1, LOW);
-	digitalWrite(motorLPin2, HIGH);
+	digitalWrite(M1A, Freeze);
+	digitalWrite(M1B, LOW);
+	digitalWrite(M2A, Freeze);
+	digitalWrite(M2B, LOW);
 }
 
+//////////////////////FORWARD////////
 void forward()
 {
-	Serial.println("                         forward ");
-	analogWrite(motorRPWM, motorRSpeed);
-	digitalWrite(motorRPin1, LOW);
-	digitalWrite(motorRPin2, HIGH);
-
-	analogWrite(motorLPWM, motorLSpeed);
-	digitalWrite(motorLPin1, LOW);
-	digitalWrite(motorLPin2, HIGH);
-}
-
-void stop()
-{
-	Serial.println("                         stop");
-	analogWrite(motorRPWM, motorRSpeed);
-	digitalWrite(motorRPin1, LOW);
-	digitalWrite(motorRPin2, LOW);
-
-	analogWrite(motorLPWM, motorLSpeed);
-	digitalWrite(motorLPin1, LOW);
-	digitalWrite(motorLPin2, LOW);
-}
-
-void scan_data()
-{
-	for (byte count = 0; count < 8; count++)
-	{
-		//Writes a bit of a numeric variable.
-		bitWrite(irSensors, count, !digitalRead(irPins[count]));
-	}
+	analogWrite(M1A, m1Speed);
+	digitalWrite(M1B, HIGH);
+	analogWrite(M2A, m2Speed);
+	digitalWrite(M2B, HIGH);
 }
