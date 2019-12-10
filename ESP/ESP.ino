@@ -43,7 +43,7 @@ int M2B = 9;//M2 Direction Control int 4
 boolean Freeze = 0; // pin high or low to stop motor????
 ///////////////////////PID TUNING//////////////
 int lastError = 0;
-float KP = 0.1;
+float KP = 0.9;
 float KD = 6;
 int M1 = 0;  //base motor speeds
 int M2 = 0;  //base motor speeds
